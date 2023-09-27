@@ -1,0 +1,35 @@
+FILE = recursion
+CFLAG = -ansi -pedantic-errors -Wall -Wextra
+CPPFLAG = -I./include/
+gd = $(CFLAG) -g
+gc = $(CFLAG) -DNDEBUG -O3
+OBJS = $(FILE)_test.o $(FILE).o
+CFILES = ./test/$(FILE)_test.c ./src/$(FILE).c ./src/stack.c
+BIN = ./bin/
+VLG = valgrind -s --leak-check=yes --track-origins=yes
+CC = gcc
+TARGET = $(FILE)
+
+#Make default
+$(TARGET): $(CFILES)
+	$(CC) $(gd) $(CFILES) -o $(BIN)$(TARGET) $(CPPFLAG)
+
+run: $(TARGET)
+	$(BIN)$(TARGET)
+	rm -f $(BIN)$(TARGET)
+
+#Make clean
+clean:
+	rm -f $(TARGET) $(OBJS)
+
+#make vlg
+vlg: $(TARGET)
+	$(VLG) $(BIN)$(TARGET)
+
+#Make DEBUG
+debug:
+	$(CC) $(gd) -o $(TARGET) $(CFILES) $(CPPFLAG)
+
+#Make RELEASE
+release:
+	$(CC) $(gc) -o $(TARGET) $(CFILES) $(CPPFLAG)

@@ -1,0 +1,84 @@
+#************************************************
+# Developer: Avri Kehat						    *
+# Description: Makefile for Scheduler		    *
+#************************************************/
+
+FILE = framework_prototype
+CC := g++
+CFLAGS = -std=c++11 -pedantic-errors -Wall -Wextra
+CPPFLAGS = -I./include -I/home/avri/git/utils/include
+SRC_DIR = src/
+TEST_DIR = test/
+BIN_DIR = bin/
+VLG = valgrind -s --leak-check=yes --track-origins=yes
+
+# Generate the object file names
+OBJ_FILES = $(patsubst $(SRC_DIR)%.cpp,$(BIN_DIR)%.o,$(wildcard $(SRC_DIR)reactor.cpp $(SRC_DIR)input_mediator.cpp $(SRC_DIR)thread_pool.cpp))
+TEST_OBJ_FILES = $(patsubst $(TEST_DIR)%_test.cpp,$(BIN_DIR)%_test.o,$(wildcard $(TEST_DIR)$(FILE)_test.cpp))
+
+# Set different compiler flags for different build types
+ifeq ($(b), gppd)
+	CFLAGS += -Og -g
+else ifeq ($(b), gppdw)
+	CFLAGS += -Og -g -Werror
+else ifeq ($(b), gppc)
+	CFLAGS += -DNDEBUG -O3
+else ifeq ($(b), gppcw)
+	CFLAGS += -DNDEBUG -O3 -Werror
+endif
+
+# Default target
+$(BIN_DIR)$(FILE): $(OBJ_FILES) $(TEST_OBJ_FILES)
+	$(CC) $(CFLAGS) $^ -o $@ $(CPPFLAGS)
+
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
+
+$(BIN_DIR)%.o: $(SRC_DIR)%.cpp | $(BIN_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@ $(CPPFLAGS)
+
+# Compile test files
+$(BIN_DIR)%_test.o: $(TEST_DIR)%_test.cpp | $(BIN_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@ $(CPPFLAGS)
+
+# Run the executable
+.PHONY: run
+run: $(BIN_DIR)$(FILE)
+	$(BIN_DIR)$(FILE)
+
+# Clean build artifacts
+.PHONY: clean
+clean:
+	$(RM) $(BIN_DIR)$(FILE)*.o
+
+# Run with Valgrind
+.PHONY: vlg
+vlg: $(BIN_DIR)$(FILE)
+	$(VLG) $(BIN_DIR)$(FILE)
+
+# Debug with gdb
+.PHONY: debug
+debug: $(BIN_DIR)$(FILE)
+	gdb $(BIN_DIR)$(FILE)
+
+# Compress source files for release
+.PHONY: compress
+compress:
+	mkdir -p review/test
+	mkdir -p review/src
+	mkdir -p review/include
+	
+	cp $(TEST_DIR)$(FILE)_test.cpp 			review/test/
+	cp $(SRC_DIR)$(FILE).cpp	 			review/src/
+	cp ./include/$(FILE).hpp 				review/include/
+	cp ./include/singleton.hpp				review/include/
+	cp ./include/waitable_q.hpp				review/include/
+	cp ./include/pq.hpp						review/include/
+	cp ./include/$(FILE).hpp 				review/include/
+	cp ~/git/utils/include/utilities.hpp 	review/include/
+	cp makefile.$(FILE)      				review/
+	mv review/makefile.$(FILE) 				review/makefile
+
+	tar -czvf $(FILE).tar.gz review/
+	
+	rm -r review

@@ -1,0 +1,118 @@
+#************************************************
+# Developer: Avri Kehat						    *
+# Description: Makefile for DLL Loader		    *
+#************************************************/
+
+####
+# This makefile is used to compile and build the 'dll_loader' target.
+# It also provides additional targets for running and cleaning the project.
+####
+
+TARGET = dll_loader
+CPP = g++
+CFLAGS = -std=c++17 -pedantic-errors -Wall -Wextra
+CPPFLAGS = -I./include/ -I/home/avri/git/utils/include
+RM = rm -f
+
+# Debug and Release build options
+DEBUG_FLAGS = -O2 -g -DDEBUG
+RELEASE_FLAGS = -O3 
+
+# Directories
+BIN_DIR = bin/
+SRC_DIR = src/
+TEST_DIR = test/
+LIB_DIR = lib/
+
+# Libraries and Source files
+LIBS := -L$(LIB_DIR) -Wl,-rpath=./$(LIB_DIR) -l$(TARGET)_loadtime
+
+.PHONY: all debug release
+
+# Default target (debug build)
+all: release
+
+# Debug build
+debug: CFLAGS += $(DEBUG_FLAGS)
+debug: $(BIN_DIR) $(BIN_DIR)$(TARGET)
+
+# Release build
+release: CFLAGS += $(RELEASE_FLAGS)
+release: $(BIN_DIR) $(BIN_DIR)$(TARGET)
+
+####
+# Target: $(TARGET)
+# This target compiles and links the source files to create the 'handleton' executable.
+# It also creates shared libraries for 'plugin' and 'loadtime'.
+####
+$(BIN_DIR)$(TARGET): $(BIN_DIR)$(TARGET)_test.o $(BIN_DIR)$(TARGET).o $(BIN_DIR)dir_monitor.o
+	$(CPP) $(CFLAGS) $^ -o $@  $(LIBS) $(CPPFLAGS)
+
+$(BIN_DIR)$(TARGET): $(LIB_DIR)lib$(TARGET)_plugin.so $(LIB_DIR)lib$(TARGET)_loadtime.so
+
+$(LIB_DIR)lib%.so: $(BIN_DIR)%.o
+	$(CPP) -shared -o $@ $<
+
+$(BIN_DIR)$(TARGET)_test.o: $(TEST_DIR)$(TARGET)_test.cpp
+	$(CPP) $(CFLAGS) -c $< $(CPPFLAGS) -o $@
+
+$(BIN_DIR)%.o: $(SRC_DIR)%.cpp
+	$(CPP) $(CFLAGS) -c $< $(CPPFLAGS) -o $@
+####
+# Target: $(LIB_DIR)plugin.o
+# This target compiles the 'plugin.cpp' file into an object file.
+####
+$(BIN_DIR)$(TARGET)_plugin.o: $(LIB_DIR)dll_plugin.cpp
+	$(CPP) -c -fPIC $< -o $@ $(CPPFLAGS)
+
+####
+# Target: $(LIB_DIR)loadtime.o
+# This target compiles the 'loadtime.cpp' file into an object file.
+####
+$(BIN_DIR)$(TARGET)_loadtime.o: $(LIB_DIR)dll_loadtime.cpp
+	$(CPP) -c -fPIC $< -o $@ $(CPPFLAGS)
+
+.PHONY: run
+run: $(BIN_DIR)$(TARGET)
+	$^
+
+.PHONY: $(BIN_DIR)
+$(BIN_DIR):
+	mkdir -p $@
+
+####
+# Target: clean
+# This target removes the 'dll_loader' executable and all object files and shared libraries in the 'lib' directory.
+####
+
+.PHONY: clean
+clean:
+	$(RM) $(BIN_DIR)$(TARGET)*.o
+	$(RM) $(LIB_DIR)$(TARGET)*.so
+
+# Compress source files for release
+.PHONY: compress
+compress:
+	mkdir -p review/test
+	mkdir -p review/src
+	mkdir -p review/lib
+	mkdir -p review/include
+	
+	cp $(TEST_DIR)$(TARGET)_test.cpp 		review/test/
+	cp $(SRC_DIR)$(TARGET).cpp 				review/src/
+	cp $(SRC_DIR)dir_monitor.cpp 			review/src/
+	cp $(LIB_DIR)dll_plugin.cpp 			review/lib/
+	cp $(LIB_DIR)dll_loadtime.cpp 			review/lib/
+	cp include/$(TARGET).hpp 				review/include/
+	cp include/dir_monitor.hpp 				review/include/
+	cp include/dispatcher.hpp 				review/include/
+	cp include/command.hpp 					review/include/
+	cp include/factory.hpp 					review/include/
+	cp include/handleton.hpp 				review/include/
+	cp ~/git/utils/include/utilities.hpp	review/include/
+
+	cp makefile.$(TARGET)      				review/makefile
+
+	tar -czvf $(TARGET).tar.gz 				review/
+	
+	rm -r review

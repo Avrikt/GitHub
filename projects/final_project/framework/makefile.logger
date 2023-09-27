@@ -1,0 +1,115 @@
+#************************************************
+# Developer: Avri Kehat						    *
+# Description: Makefile for Logger			    *
+#************************************************/
+
+####
+# This makefile is used to compile and build the 'logger' target.
+# It also provides additional targets for running and cleaning the project.
+####
+
+TARGET = logger
+CPP = g++
+DFLAGS = -std=c++11 -pedantic-errors -Wall -Wextra -O2 -g
+CFLAGS = -std=c++11 -pedantic-errors -Wall -Wextra -O3 -DNDEBUG
+THREADFLAGS = -lpthread -lboost_thread
+CPPFLAGS = -I./include/ -I/home/avri/git/utils/include
+RM = rm -f
+
+# Directories
+BIN_DIR = bin/
+SRC_DIR = src/
+TEST_DIR = test/
+LIB_DIR = lib/
+
+# Libraries and Source files
+LIBS := -L$(LIB_DIR) -Wl,-rpath=./$(LIB_DIR) -l$(TARGET)_loadtime -l$(TARGET)
+
+.PHONY: all clean run compress
+
+all: $(BIN_DIR)$(TARGET)
+
+####
+# Target: $(TARGET)
+# This target compiles and links the source files to create the 'logger' executable.
+# It also creates shared libraries for 'plugin' and 'loadtime'.
+####
+$(BIN_DIR)$(TARGET): $(LIB_DIR)liblogger.so $(LIB_DIR)lib$(TARGET)_plugin.so $(LIB_DIR)lib$(TARGET)_loadtime.so $(BIN_DIR)$(TARGET)_test.o | $(BIN_DIR)
+	$(CPP) $(DFLAGS) $^ -o $@  $(LIBS) $(THREADFLAGS)
+
+$(LIB_DIR)liblogger.so: $(BIN_DIR)logger.o
+	$(CPP) -shared -o $@ $<
+
+$(LIB_DIR)lib%.so: $(BIN_DIR)%.o
+	$(CPP) -shared -o $@ $<
+
+$(BIN_DIR)logger.o: $(SRC_DIR)logger.cpp
+	$(CPP) -c -fPIC $< -o $@ $(CPPFLAGS)
+
+$(BIN_DIR)%.o: $(LIB_DIR)%.cpp
+	$(CPP) -c -fPIC $< -o $@ $(CPPFLAGS)
+
+$(BIN_DIR)$(TARGET)_test.o: $(TEST_DIR)$(TARGET)_test.cpp
+	$(CPP) -c $< -o $@ $(CPPFLAGS)
+
+$(BIN_DIR):
+	mkdir -p ./$(BIN_DIR)
+
+####
+# Target: cleanobj
+# This target removes the object files in the 'lib' directory.
+####
+cleanobj: 
+	$(RM) $(LIB_DIR)*.o $(SRC_DIR)*.o
+
+run: $(TARGET)
+	$(BIN_DIR)$^
+
+####
+# Target: clean
+# This target removes the 'logger' executable and all object files and shared libraries in the 'lib' directory.
+####
+.PHONY: clean
+clean:
+	$(RM) $(BIN_DIR)$(TARGET)*.o
+	$(RM) $(LIB_DIR)*.so
+
+
+# Compress source files for release
+compress:
+	mkdir -p review/test
+	mkdir -p review/lib
+	mkdir -p review/src
+	mkdir -p review/include
+	
+	cp $(TEST_DIR)$(TARGET)_test.cpp 		review/test/
+	cp $(SRC_DIR)$(TARGET).cpp 			review/src/
+	cp $(LIB_DIR)$(TARGET)_loadtime.cpp	review/lib/
+	cp $(LIB_DIR)$(TARGET)_plugin.cpp		review/lib/
+	cp ./include/$(TARGET).hpp 				review/include/
+	cp ./include/handleton.hpp 				review/include/
+	cp ./include/waitable_q.hpp 			review/include/
+	cp ~/git/utils/include/utilities.hpp 	review/include/
+	cp makefile.$(TARGET)      				review/
+	mv review/makefile.$(TARGET) 			review/makefile
+
+	tar -czvf $(TARGET).tar.gz review/
+
+	rm -r reviewiew/lib
+	mkdir -p review/src
+	mkdir -p review/include
+	
+	cp $(TEST_DIR)$(TARGET)_test.cpp 		review/test/
+	cp $(SRC_DIR)$(TARGET).cpp 			review/src/
+	cp $(LIB_DIR)$(TARGET)_loadtime.cpp	review/lib/
+	cp $(LIB_DIR)$(TARGET)_plugin.cpp		review/lib/
+	cp ./include/$(TARGET).hpp 				review/include/
+	cp ./include/handleton.hpp 				review/include/
+	cp ./include/waitable_q.hpp 			review/include/
+	cp ~/git/utils/include/utilities.hpp 	review/include/
+	cp makefile.$(TARGET)      				review/
+	mv review/makefile.$(TARGET) 			review/makefile
+
+	tar -czvf $(TARGET).tar.gz review/
+
+	rm -r review

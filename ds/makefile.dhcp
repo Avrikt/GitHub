@@ -1,0 +1,56 @@
+FILE = dhcp
+CFLAG = -ansi -pedantic-errors -Wall -Wextra
+CPPFLAG = -I./include/
+gd = $(CFLAG) -g
+gc = $(CFLAG) -DNDEBUG -O3
+OBJS = $(FILE)_test.o $(FILE).o
+CFILES = ./test/$(FILE)_test.c ./src/$(FILE).c ./src/trie.c
+BIN = ./bin/
+VLG = valgrind -s --leak-check=yes --track-origins=yes
+CC = gcc
+TARGET = $(FILE)
+
+#Make default
+$(TARGET): $(CFILES)
+	mkdir -p bin/
+	$(CC) $(gd) $(CFILES) -lm -o $(BIN)$(TARGET) $(CPPFLAG)
+
+run: $(TARGET)
+	$(BIN)$(TARGET)
+
+#Make clean
+clean:
+	rm -f $(TARGET) $(OBJS)
+
+#make vlg
+vlg: $(TARGET)
+	$(VLG) $(BIN)$(TARGET)
+
+#Make DEBUG
+debug: $(TARGET)
+	gdb $(BIN)$(TARGET)
+	
+#Make compress
+compress:
+	mkdir -p review
+	mkdir -p review/test
+	mkdir -p review/src
+	mkdir -p review/include
+	
+	cp ./test/$(FILE)_test.c 	review/test/
+	cp ./src/$(FILE).c 			review/src/
+	cp ./src/trie.c 			review/src/
+	cp ./include/$(FILE).h 		review/include/
+	cp ./include/trie.h 		review/include/
+	cp ./include/utilities.h 	review/include/
+	cp makefile.$(FILE) 		review/
+	
+	mv review/makefile.$(FILE) 	review/makefile 
+	
+	tar -czvf $(FILE).tar.gz review/
+	
+	rm -r ./review
+	
+#Make RELEASE
+release:
+	$(CC) $(gc) -o $(TARGET) $(CFILES) $(CPPFLAG)

@@ -1,0 +1,61 @@
+#************************************************
+# Developer: Avri Kehat						    *
+# Description: Makefile for Handleton		    *
+#************************************************/
+
+####
+# This makefile is used to compile and build the 'handleton' target.
+# It also provides additional targets for running and cleaning the project.
+####
+
+TARGET = handleton
+CPP = g++
+DFLAGS = -std=c++11 -pedantic-errors -Wall -Wextra -O2 -g
+CFLAGS = -std=c++11 -pedantic-errors -Wall -Wextra -O3 -DNDEBUG
+CPPFLAGS = -I./include/
+RM = rm -f
+
+# Directories
+BIN_DIR = bin/
+SRC_DIR = src/
+TEST_DIR = test/
+LIB_DIR = lib/
+
+# Libraries and Source files
+LIBS := -L$(LIB_DIR) -Wl,-rpath=./$(LIB_DIR) -l$(TARGET)_loadtime
+
+.PHONY: all
+all: $(BIN_DIR)$(TARGET)
+
+####
+# Target: $(TARGET)
+# This target compiles and links the source files to create the 'handleton' executable.
+# It also creates shared libraries for 'plugin' and 'loadtime'.
+####
+$(BIN_DIR)$(TARGET): $(LIB_DIR)lib$(TARGET)_plugin.so $(LIB_DIR)lib$(TARGET)_loadtime.so $(BIN_DIR)$(TARGET)_test.o
+	$(CPP) $(DFLAGS) $^ -o $@ $(LIBS) $(CPPFLAGS)
+
+$(LIB_DIR)lib$(TARGET)%.so: $(BIN_DIR)$(TARGET)%.o
+	$(CPP) -shared -o $@ $^
+
+####
+# Target: $(LIB_DIR)plugin.o
+# This target compiles the 'plugin.cpp' file into an object file.
+####
+$(BIN_DIR)$(TARGET)%.o: $(LIB_DIR)$(TARGET)%.cpp
+	$(CPP) -c -fPIC $< -o $@ $(CPPFLAGS)
+
+$(BIN_DIR)$(TARGET)_test.o: $(TEST_DIR)$(TARGET)_test.cpp
+	$(CPP) -c $< $(CPPFLAGS) -o $@
+
+run: $(TARGET)
+	$(BIN_DIR)$^
+
+####
+# Target: clean
+# This target removes the 'handleton' executable and all object files and shared libraries in the 'lib' directory.
+####
+.PHONY: clean
+clean:
+	$(RM) $(BIN_DIR)$(TARGET)*.o
+	$(RM) $(LIB_DIR)$(TARGET)*.so

@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "stdlib.h": "c",
+        "utilities.h": "c",
+        "*.avl": "makefile"
+    }
+}
