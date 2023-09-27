@@ -1,0 +1,12 @@
+#ignore types
+
+*
+
+#dont ignore directories, c, and h files
+!makefile*
+!*/
+!*.cpp
+!*.c
+!*.hpp
+!*.h
+!.gitignore
